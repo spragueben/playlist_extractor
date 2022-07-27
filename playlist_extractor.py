@@ -1,4 +1,5 @@
-# 2022.07.26 11:04PM
+#%%
+# 2022.07.27 01:52AM
 
 # Filename: playlist_extractor.py
 # Author: Ben Sprague
@@ -15,19 +16,6 @@ import shutil
 import platform
 import subprocess
 from os.path import exists
-
-PLAYLIST_URL = input(f"\nWhat is the web address (url) of the playlist you would like to watch with VLC? (or just press <ENTER> to try a sample)\n> ") or "https://www.youtube.com/playlist?list=PLN-FMT_Cr3Zxz3rUXmQJrz9ij0GhdEiI1"
-print(f"\nThe url of the selected playlist is: {PLAYLIST_URL}")
-PLAYLIST_TITLE = input("\nPlease enter a name for your playlist.\n> ") or "My_Playlist"
-VLC_PATH = "/Applications/VLC.app/Contents/MacOS/VLC"
-PROJECT_ROOT = os.getcwd()
-VIRTUAL_ENV = sys.prefix
-print(f"Playlist title: {PLAYLIST_TITLE}\nPlaylist location:{PROJECT_ROOT}\n\nPlease wait a moment while the webdriver retrieves your page.")
-
-exe = shutil.which('chromedriver')
-proceed_prompt = "\n------------------ Press <ENTER> to continue ------------------"
-paginator =    "\n---------------------------------------------------------------"
-env_bin = os.path.join(sys.prefix, "bin")
 
 def trim(docstring):
     if not docstring:
@@ -47,6 +35,61 @@ def trim(docstring):
     while trimmed and not trimmed[0]:
         trimmed.pop(0)
     return '\n'.join(trimmed)
+
+path = None
+env_bin = os.path.join(sys.prefix, "bin")
+exe = shutil.which('chromedriver')
+proceed_prompt = "\n------------------ Press <ENTER> to continue ------------------"
+paginator =    "\n---------------------------------------------------------------"
+
+PROJECT_ROOT = os.getcwd()
+VIRTUAL_ENV = sys.prefix
+PLAYLIST_URL = input(f"\nWhat is the web address (url) of the playlist you would like to watch with VLC? (or just press <ENTER> to try a sample)\n> ") or "https://www.youtube.com/playlist?list=PLN-FMT_Cr3Zxz3rUXmQJrz9ij0GhdEiI1"
+print(f"\nThe url of the selected playlist is: {PLAYLIST_URL}")
+PLAYLIST_TITLE = input("\nPlease enter a name for your playlist.\n> ") or "My_Playlist"
+VLC_PATH = None
+
+if platform.system() == "Windows":
+    path = r'C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe'
+    if exists(path) == True:
+        VLC_PATH = path
+elif platform.system() == "Darwin":
+    path = r"/Applications/VLC.app/Contents/MacOS/VLC"
+    if exists(path) == True:
+        VLC_PATH = path
+else:
+    path = r'/usr/bin/vlc'
+    if exists(path) == True:
+        VLC_PATH = path
+
+#%%
+while VLC_PATH == None:
+    if input("\nDo you have VLC player installed on your machine (y/[n])? ").lower() in ["y","yes"]:
+        VLC_PATH = input("Please paste the path to your VLC executable, then press <ENTER> to proceed\n> ")
+    else:
+        if input('''\nIf you would like to download VLC, press <ENTER> to visit https://www.videolan.org/vlc/ and download the correct version for your machine.\n(To exit the program, type "exit".)\n> ''').lower() == "exit":
+            exit()
+        else:
+            webbrowser.open("https://www.videolan.org/vlc/")
+            temp = input('''\nOnce VLC has been downloaded, please paste the path to your VLC executable, or press enter to browse for it.\n> ''') or None        
+    if temp:
+        VLC_PATH = temp
+    elif exists(path) == True:
+        if input(f"\nNote: An installation of VLC has been downloaded at {path}. To use this installion, press <ENTER>. Otherwise, press any key to open a file browser\n> ") == "":
+            VLC_PATH = path
+        else:
+            try:
+                from tkFileDialog import askopenfilenames
+            except:
+                from tkinter import filedialog
+
+            Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
+            filenames = filedialog.askopenfilenames() # show an "Open" dialog box and return the path to the selected file
+
+            VLC_PATH = filenames
+            input(proceed_prompt)
+
+print(paginator, f"\nPlaylist title: {PLAYLIST_TITLE}\nPlaylist location:{PROJECT_ROOT}\n\nPlease wait a moment while the webdriver retrieves your page. ")
 
 DRIVER_PATH = os.path.join(env_bin,"chromedriver")
 if platform.system() == "Windows":
@@ -308,8 +351,9 @@ def main():
 	playlist_xml = playlist.get_playlist()
 	with open('songs.xspf','w') as mf:
 		mf.write(xml.tostring(playlist_xml).decode('utf-8'))
-
 main()
-
 subprocess.Popen([VLC_PATH, '--playlist-autostart', 'playlist.xspf'])
+
 driver.quit()
+time.sleep(10)
+exit()
